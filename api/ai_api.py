@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 
 import joblib
 import pandas as pd
@@ -8,6 +9,11 @@ from flask import Flask, jsonify, request
 app = Flask(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from preprocessing.skill_snapshot_preprocessor import build_ai_prediction_payload
+
 MODEL_DIR = PROJECT_ROOT / "models"
 MODEL_PATHS = [
     MODEL_DIR / "evaluate_skill_model_vFINAL.pkl",
@@ -78,6 +84,29 @@ def _normalize_payloads(payload):
     raise ValueError("Request body must be a JSON object or array.")
 
 
+def _item_has_model_features(item):
+    return isinstance(item, dict) and all(feature in item for feature in model_features)
+
+
+def _payload_needs_skill_snapshot(payload):
+    if isinstance(payload, dict):
+        for key in ("items", "answers", "predictions", "skills", "tests"):
+            value = payload.get(key)
+            if isinstance(value, list):
+                if not value:
+                    return True
+                return not _item_has_model_features(value[0])
+
+        return not _item_has_model_features(payload)
+
+    if isinstance(payload, list):
+        if not payload:
+            return True
+        return not _item_has_model_features(payload[0])
+
+    raise ValueError("Request body must be a JSON object or array.")
+
+
 def _status(probability, threshold):
     if probability < threshold:
         return "Weak Skill"
@@ -133,8 +162,14 @@ def predict():
 
     payload = request.get_json(silent=True)
 
+    if payload is None:
+        return jsonify({"error": "Request body must be valid JSON."}), 400
+
     try:
-        payloads = _normalize_payloads(payload)
+        if _payload_needs_skill_snapshot(payload):
+            payloads = build_ai_prediction_payload(payload)
+        else:
+            payloads = _normalize_payloads(payload)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 

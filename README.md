@@ -71,6 +71,12 @@ Preprocess data:
 python preprocessing/preprocess.py
 ```
 
+Build skill snapshots from ordered student answers and skill difficulty values:
+
+```bash
+python preprocessing/skill_snapshot_smoke_test.py
+```
+
 Train a model (example):
 
 ```bash
@@ -108,14 +114,14 @@ python api/ai_api.py
 By default the server listens on port `5000`. Endpoints:
 
 - `GET /health` — returns model load status and feature/threshold info
-- `POST /predict` — accepts a JSON object or an array of prediction items; returns probability and status per item
+- `POST /predict` — accepts either prebuilt feature rows or raw ordered student answers plus `skills_difficulty`; returns probability and status per skill
 
 Example `curl` request:
 
 ```bash
 curl -X POST http://127.0.0.1:5000/predict \
 	-H "Content-Type: application/json" \
-	-d '[{"user_id":123,"skill_id":456,"decayed_mastery":0.2,"student_skill_history":3} ]'
+	-d '{"items":[{"order_id":1,"skill_id":456,"is_correct":1},{"order_id":2,"skill_id":456,"is_correct":0}],"skills_difficulty":{"456":0.35}}'
 ```
 
 ## Model artifacts
