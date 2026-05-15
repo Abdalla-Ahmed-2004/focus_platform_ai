@@ -58,35 +58,36 @@ def predict_student_status(student_data_dict, custom_threshold=None):
 # These are realistic test cases aligned with the current feature set
 
 precise_tests = {
-    "SUPER_EXPERT": {
+    "SUPER_EXPERT (شاطر جداً)": {
         'decayed_mastery': 0.98, 'skill_difficulty_avg': 0.85, 
-        'student_skill_history': 0.95, 'user_success_rate': 0.98, 
+        'student_skill_history': 0.95,
+        # 'user_success_rate': 0.98, 
         'weighted_streak': 20.0, 'consecutive_correct': 15,
         'opportunity_count': 100, 'learning_momentum': 0.05, 
         'weighted_consistency': 0.99, 'total_experience_score': 5.0, 
         'complexity_gap': 0.10, 'mastery_history_gap': 0.01,
         'performance_efficiency': 0.98, 'consistency_success_sync': 0.98
     },
-    "TYPICAL_AVERAGE": {
-        # Balanced profile around the middle range
-        'decayed_mastery': 0.72,
+    "TYPICAL_AVERAGE (متوسط منطقي)": {
+        # التعديل: رفع الثبات ونسبة النجاح لضمان تخطي حاجز الـ 60%
+        'decayed_mastery': 0.72,          # إتقان تراكمي جيد جداً
         'skill_difficulty_avg': 0.50, 
         'student_skill_history': 0.68, 
-        'user_success_rate': 0.75,
-        'weighted_streak': 7.0,
+        # 'user_success_rate': 0.75,        # نجاح في 3/4 الأسئلة تقريباً
+        'weighted_streak': 7.0,           # استمرارية واضحة
         'consecutive_correct': 7,
-        'opportunity_count': 50,
+        'opportunity_count': 50,          # خبرة متوسطة كافية
         'learning_momentum': 0.15, 
-        'weighted_consistency': 0.82,
+        'weighted_consistency': 0.82,     # الثبات العالي هو ما يرفعه للمنطقة الخضراء
         'total_experience_score': 3.5, 
-        'complexity_gap': 0.20,
+        'complexity_gap': 0.20,           # مستواه أعلى من متوسط صعوبة المادة
         'mastery_history_gap': 0.04,
         'performance_efficiency': 0.78,
         'consistency_success_sync': 0.75
     },
-    "TOTAL_FAILURE": {
+    "TOTAL_FAILURE (فاشل جداً)": {
         'decayed_mastery': 0.05, 'skill_difficulty_avg': 0.30, 
-        'student_skill_history': 0.05, 'user_success_rate': 0.12, 
+        'student_skill_history': 0.05, # 'user_success_rate': 0.12, 
         'weighted_streak': 0.0, 'consecutive_correct': 0,
         'opportunity_count': 15, 'learning_momentum': -0.85, 
         'weighted_consistency': 0.05, 'total_experience_score': 0.4, 
@@ -97,42 +98,49 @@ precise_tests = {
 
 
 evolution_snapshots = {
-    "Early_Beginner": {
+    "Early_Beginner (بداية متعثرة)": {
         'decayed_mastery': 0.18, 'skill_difficulty_avg': 0.40, 
         'student_skill_history': 0.12, 'opportunity_count': 5, 
-        'weighted_streak': 1.0, 'user_success_rate': 0.22,
+        'weighted_streak': 1.0, # 'user_success_rate': 0.22,
         'weighted_consistency': 0.10, 'consecutive_correct': 1,
         'performance_efficiency': 0.15, 'consistency_success_sync': 0.10,
         'total_experience_score': 0.2, 'learning_momentum': 0.05, 
         'complexity_gap': -0.25, 'mastery_history_gap': 0.10
     },
     
-    "Intermediate_Struggler": {
-        # Increased momentum and consistency to place it in the middle range
+    "Intermediate_Struggler (مرحلة الصعود)": {
+        # التعديل: رفع "الزخم" و"الثبات" ليكون في الستينيات
         'decayed_mastery': 0.60, 
         'skill_difficulty_avg': 0.50, 
         'student_skill_history': 0.55, 
         'opportunity_count': 35,
         'weighted_streak': 5.0, 
-        'user_success_rate': 0.68, 
-        'weighted_consistency': 0.75,
+        # 'user_success_rate': 0.68, 
+        'weighted_consistency': 0.75,     # أهم عامل للنجاح
         'consecutive_correct': 5,
         'performance_efficiency': 0.70, 
         'consistency_success_sync': 0.68,
-        'total_experience_score': 2.6,
-        'learning_momentum': 0.65,
+        'total_experience_score': 2.6, 
+        'learning_momentum': 0.65,        # زخم انفجاري يدل على تحسن حقيقي
         'complexity_gap': 0.15, 
         'mastery_history_gap': 0.15
     },
 
-    "Transformed_Expert": {
-        'decayed_mastery': 0.94, 'skill_difficulty_avg': 0.75, 
-        'student_skill_history': 0.88, 'opportunity_count': 85, 
-        'weighted_streak': 18.0, 'user_success_rate': 0.92,
-        'weighted_consistency': 0.96, 'consecutive_correct': 14,
-        'performance_efficiency': 0.95, 'consistency_success_sync': 0.95,
-        'total_experience_score': 4.9, 'learning_momentum': 0.08, 
-        'complexity_gap': 0.22, 'mastery_history_gap': 0.06
+   "Transformed_Expert_20_Opps": {
+        "decayed_mastery": 0.94,
+        "skill_difficulty_avg": 0.75,
+        "student_skill_history": 0.88,
+        "opportunity_count": 20, 
+        "consecutive_correct": 12, 
+        "total_experience_score": 3.0445, 
+        "weighted_streak": 16.24, 
+        "weighted_consistency": 0.925,
+        "performance_efficiency": 1.10,
+        "consistency_success_sync": 0.3525, 
+        "learning_momentum": 0.06,
+        "complexity_gap": 0.13,
+        "mastery_history_gap": 0.06,
+        # "user_success_rate": 0.92
     }
 }
 

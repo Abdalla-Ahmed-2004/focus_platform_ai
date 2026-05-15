@@ -19,7 +19,7 @@ DEFAULT_FEATURES = [
     "decayed_mastery",
     "skill_difficulty_avg",
     "student_skill_history",
-    "user_success_rate",
+    # "user_success_rate",
     "weighted_streak",
     "consecutive_correct",
     "opportunity_count",

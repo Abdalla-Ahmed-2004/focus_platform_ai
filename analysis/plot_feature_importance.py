@@ -23,7 +23,7 @@ FEATURES = [
     'decayed_mastery', 'skill_difficulty_avg', 'student_skill_history',
     'complexity_gap', 'learning_momentum', 'consecutive_correct',
     'opportunity_count', 'weighted_consistency', 'total_experience_score',
-    'mastery_history_gap', 'weighted_streak', 'user_success_rate',
+    'mastery_history_gap', 'weighted_streak', #'user_success_rate',
     'performance_efficiency', 'consistency_success_sync'
 ]
 
