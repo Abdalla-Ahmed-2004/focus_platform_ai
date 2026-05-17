@@ -8,7 +8,7 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-# إعداد المسارات الأساسية للمشروع
+# Set project root paths
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path: 
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -17,33 +17,33 @@ MODEL_DIR = PROJECT_ROOT / "models"
 MODEL_PATH = MODEL_DIR / "lstm_knowledge_tracing_model.h5"
 METADATA_PATH = PROJECT_ROOT / "data" / "lstm_metadata.pkl"
 
-# تحميل الموديل والبيانات الوصفية عند تشغيل السيرفر
+# Load model and metadata on server start
 lstm_model = None
 max_seq_len = 50
 
 try:
     if MODEL_PATH.exists():
         lstm_model = tf.keras.models.load_model(str(MODEL_PATH))
-        print("🧠 [SUCCESS] LSTM Knowledge Tracing Model Loaded Successfully!")
+        print(" [SUCCESS] LSTM Knowledge Tracing Model Loaded Successfully!")
     else:
-        print("⚠️ [WARNING] Model file not found. Please train the LSTM first.")
+        print(" [WARNING] Model file not found. Please train the LSTM first.")
 except Exception as e:
-    print(f"❌ [ERROR] Failed to load the LSTM model: {str(e)}")
+    print(f" [ERROR] Failed to load the LSTM model: {str(e)}")
 
 
 def calculate_lstm_mastery(student_history, skill_difficulty):
     """
-    حساب نسبة إتقان المهارة عبر الـ LSTM مع عمل الـ Padding المناسب
+    Calculate the mastery percentage using the LSTM and apply proper padding.
     """
     if not student_history:
         return round((1.0 - skill_difficulty) * 100, 2)
         
-    # تشكيل الميزات [correct, difficulty] لكل خطوة زمنية
+    # build features [correct, difficulty] for each timestep
     features = [[float(ans), float(skill_difficulty)] for ans in student_history]
     features = np.array(features, dtype=np.float32)
     actual_len = len(features)
     
-    # تطبيق الـ Padding أو الـ Truncating لتثبيت الطول عند 50 خطوة زمنية
+    # Apply padding or truncating to fix sequence length at max_seq_len timesteps
     if actual_len < max_seq_len:
         pad_width = max_seq_len - actual_len
         padded_features = np.pad(features, ((0, pad_width), (0, 0)), mode='constant', constant_values=-1.0)
@@ -51,13 +51,13 @@ def calculate_lstm_mastery(student_history, skill_difficulty):
         padded_features = features[-max_seq_len:]
         actual_len = max_seq_len
         
-    # تحويل الأبعاد لتناسب الـ LSTM -> [Batch=1, Timesteps=50, Features=2]
+    # Reshape to LSTM input -> [Batch=1, Timesteps=max_seq_len, Features=2]
     input_tensor = np.expand_dims(padded_features, axis=0)
     
-    # التوقع عبر الشبكة العميقة
+    # Predict through the deep network
     predictions = lstm_model.predict(input_tensor, verbose=0)
     
-    # التقاط الاحتمالية من آخر خطوة فعلية حلها الطالب
+    # Extract probability from the last actual timestep answered by the student
     last_step_index = actual_len - 1
     mastery_prob = predictions[0, last_step_index, 0]
     
@@ -65,7 +65,7 @@ def calculate_lstm_mastery(student_history, skill_difficulty):
 
 
 def _status(prob_percentage):
-    """تحديد حالة الإتقان بناءً على النسبة"""
+    """Determine mastery status based on the percentage"""
     if prob_percentage < 50.0: 
         return "Red (weak skill)"
     if prob_percentage < 75.0: 
@@ -146,7 +146,7 @@ def _normalize_skill_batch(payload):
 @app.route("/predict", methods=["POST"])
 def predict():
     """
-    الـ Endpoint الرئيسي لاستقبال الـ Batch المجمع من Laravel بعد الكويز
+    Main endpoint to receive the batched skill payload from Laravel after a quiz.
     """
     if lstm_model is None:
         return jsonify({"error": "LSTM model is not trained or initialized."}), 500
@@ -163,28 +163,28 @@ def predict():
         skill_id = str(item.get("skill_id", ""))
         skill_name = item.get("skill_name", "Unknown Skill")
         
-        # استقبال تاريخ الإجابات الإجمالي للمهارة [0, 1, 1, 0, ...]
+        # receive the overall answer history for the skill [0, 1, 1, 0, ...]
         student_history = item.get("student_history", [])
         
-        # استقبال الصعوبة الحالية للمهارة القادمة من Laravel (ووضع 0.5 كاقتراض لو مش مبعوتة)
+        # receive the skill difficulty sent from Laravel (default to 0.5 if missing)
         skill_difficulty = float(item.get("skill_difficulty_avg", 0.50))
         
         try:
-            # 1. حساب الإحصائيات المطلوبة تلقائياً من الـ history
+            # 1. compute the required statistics automatically from history
             total_attempts = len(student_history)
-            total_correct = int(sum(student_history)) # جمع الـ 1 يعطيك عدد الصح
+            total_correct = int(sum(student_history)) # sum of 1s gives number correct
             
-            # 2. حساب نسبة الإتقان عبر الـ LSTM
+            # 2. compute mastery percentage via the LSTM
             mastery_score = calculate_lstm_mastery(student_history, skill_difficulty)
             status_str = _status(mastery_score)
             
-            # 3. بناء تقرير المهارة بالبيانات اللي طلبتها بالظبط
+            # 3. build the skill report with the exact required fields
             results.append({
                 "skill_id": skill_id,
                 "skill_name": skill_name,
-                "total_attempts": total_attempts,   # عدد الأسئلة على المهارة
-                "total_correct": total_correct,     # عدد الإجابات الصحيحة
-                "mastery_score": mastery_score,     # احتمالية الإتقان مئوية (LSTM)
+                "total_attempts": total_attempts,   # number of questions for the skill
+                "total_correct": total_correct,     # number of correct answers
+                "mastery_score": mastery_score,     # mastery probability percentage (LSTM)
                 "status": status_str
             })
             
@@ -195,7 +195,7 @@ def predict():
                 "error": f"Failed to predict for this skill: {str(e)}"
             })
 
-    # إرجاع النتيجة مجمعة لـ Laravel
+    # return the aggregated result back to Laravel
     return jsonify(results if isinstance(payload, list) else results[0]), 200
 
 
