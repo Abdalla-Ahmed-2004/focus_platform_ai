@@ -1,7 +1,9 @@
 flask
 joblib
-lightgbm
+
 matplotlib
 numpy
 pandas
 scikit-learn
+tensorflow>=2.11
+h5py

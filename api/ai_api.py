@@ -1,3 +1,7 @@
+
+
+
+
 from pathlib import Path
 import sys
 import os
@@ -33,7 +37,8 @@ except Exception as e:
 
 def calculate_lstm_mastery(student_history, skill_difficulty):
     """
-    Calculate the mastery percentage using the LSTM and apply proper padding.
+    Calculate the mastery percentage using the LSTM, apply proper padding,
+    and normalize the score so that 90% from the model equals 100% for the student.
     """
     if not student_history:
         return round((1.0 - skill_difficulty) * 100, 2)
@@ -61,19 +66,32 @@ def calculate_lstm_mastery(student_history, skill_difficulty):
     last_step_index = actual_len - 1
     mastery_prob = predictions[0, last_step_index, 0]
     
-    return round(float(mastery_prob) * 100, 2)
+    # 1. Convert raw model probability to percentage (0 - 100)
+    raw_score = float(mastery_prob) * 100
+    
+    # 2. Set the custom saturation threshold (90% model score = 100% user score)
+    MAX_MODEL_SCORE = 90.0
+    
+    # 3. Apply Min-Max / Linear Scaling Normalization
+    normalized_score = (raw_score / MAX_MODEL_SCORE) * 100
+    
+    # 4. Safeguard to ensure the score never exceeds 100.0%
+    final_score = min(normalized_score, 100.0)
+    
+    return round(raw_score, 2)
 
 
 def _status(prob_percentage):
-    """Determine mastery status based on the percentage"""
+    """Determine mastery status based on the normalized percentage"""
     if prob_percentage < 50.0: 
-        return "Red (weak skill)"
+        return "Red (weak skill)  "
     if prob_percentage < 75.0: 
         return "Developing (On Track)"
     return "Green (Mastered)"
 
 
 def _normalize_skill_batch(payload):
+    """Normalizes incoming payloads from Laravel to a unified format"""
     if isinstance(payload, list):
         if payload and isinstance(payload[0], dict) and "student_history" in payload[0]:
             return payload
@@ -174,7 +192,7 @@ def predict():
             total_attempts = len(student_history)
             total_correct = int(sum(student_history)) # sum of 1s gives number correct
             
-            # 2. compute mastery percentage via the LSTM
+            # 2. compute normalized mastery percentage via the LSTM
             mastery_score = calculate_lstm_mastery(student_history, skill_difficulty)
             status_str = _status(mastery_score)
             
@@ -184,7 +202,7 @@ def predict():
                 "skill_name": skill_name,
                 "total_attempts": total_attempts,   # number of questions for the skill
                 "total_correct": total_correct,     # number of correct answers
-                "mastery_score": mastery_score,     # mastery probability percentage (LSTM)
+                "mastery_score": mastery_score,     # mastery probability percentage (Normalized)
                 "status": status_str
             })
             
@@ -201,3 +219,6 @@ def predict():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
+
+
