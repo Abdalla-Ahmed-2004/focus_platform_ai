@@ -351,7 +351,7 @@ def calculate_lstm_mastery(student_history, skill_difficulty):
     return round(final_percentage, 2)
 def _status(prob_percentage):
     if prob_percentage < 50.0: return "Red (weak skill)"
-    if prob_percentage < 75.0: return "Developing (On Track)"
+    if prob_percentage < 85.0: return "Developing (On Track)"
     return "Green (Mastered)"
 
 
