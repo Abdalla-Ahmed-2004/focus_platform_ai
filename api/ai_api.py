@@ -305,7 +305,10 @@ except Exception as e:
 def calculate_lstm_mastery(student_history, skill_difficulty):
     if not student_history:
         return round((1.0 - skill_difficulty) * 100, 2)
-        
+    
+        # If the student answered questions but got 0 correct, force their score to 0
+    if sum(student_history) == 0:
+        return 0.0
     features = [[float(ans), float(skill_difficulty)] for ans in student_history]
     features = np.array(features, dtype=np.float32)
     actual_len = len(features)
